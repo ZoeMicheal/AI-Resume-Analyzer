@@ -61,7 +61,7 @@ interface PuterStore {
       data: string | File | Blob,
     ) => Promise<File | undefined>;
     read: (path: string) => Promise<Blob | undefined>;
-    upload: (file: File[] | Blob[]) => Promise<FSItem | undefined>;
+    upload: (file: File[]) => Promise<FSItem | undefined>;
     delete: (path: string) => Promise<void>;
     readDir: (path: string) => Promise<FSItem[] | undefined>;
   };
