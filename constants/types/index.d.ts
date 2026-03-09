@@ -15,6 +15,8 @@ interface Resume {
 }
 
 interface Feedback {
+  ats_compatibility: number;
+  overall_rating: number;
   overallScore: number;
   ATS: {
     score: number;

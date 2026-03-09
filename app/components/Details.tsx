@@ -1,6 +1,10 @@
 import React from 'react';
 
-const Details = () => {
+interface DetailsProps {
+  feedback?: Feedback;
+}
+
+const Details = ({ feedback }: DetailsProps) => {
   return <div>Details</div>;
 };
 

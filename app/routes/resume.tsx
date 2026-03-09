@@ -1,9 +1,8 @@
 import { Link, useNavigate, useParams } from 'react-router';
 import { useEffect, useState } from 'react';
 import { usePuterStore } from '~/lib/puter';
-import Details from "~/components/Details";
-import Summary from "~/components/Summary";
-import ATS from "~/components/ATS";
+import Summary from '~/components/Summary';
+import ATS from '~/components/ATS';
 
 export const meta = () => [
   { title: 'Resumind | Review' },
@@ -15,35 +14,48 @@ const Resume = () => {
   const { id } = useParams();
   const [imageUrl, setImageUrl] = useState('');
   const [resumeUrl, setResumeUrl] = useState('');
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useState<any>(null); // normalized object
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !auth.isAuthenticated) navigate(`/auth?next=/resume/${id}`);
+    if (!isLoading && !auth.isAuthenticated)
+      navigate(`/auth?next=/resume/${id}`);
   }, [isLoading]);
 
   useEffect(() => {
     const loadResume = async () => {
       const resume = await kv.get(`resume:${id}`);
+      if (!resume) return;
 
-      if(!resume) return;
       const data = JSON.parse(resume);
 
       const resumeBlob = await fs.read(data.resumePath);
-      if(!resumeBlob) return;
-
-      const pdfBlob = new Blob( [resumeBlob], { type: 'application/pdf'});
-      const resumeUrl = URL.createObjectURL(pdfBlob);
+      if (!resumeBlob) return;
+      const resumeUrl = URL.createObjectURL(
+        new Blob([resumeBlob], { type: 'application/pdf' }),
+      );
       setResumeUrl(resumeUrl);
 
       const imageBlob = await fs.read(data.imagePath);
-      if(!imageBlob) return;
+      if (!imageBlob) return;
       const imageURL = URL.createObjectURL(imageBlob);
       setImageUrl(imageURL);
 
-      setFeedback(data.feedback);
-      console.log({resumeUrl, imageUrl, feedback: data.feedback});
-    }
+
+      // LINE CHANGED: numbers avoiding NaN
+      const rawFeedback = data.feedback;
+      const normalizedFeedback = {
+        overallScore: Number(rawFeedback?.overall_rating ?? 0),
+        atsScore: Number(rawFeedback?.ats_compatibility ?? 0),
+        atsTips: rawFeedback?.ats_feedback ?? [],
+        strengths: rawFeedback?.strengths ?? [],
+        weaknesses: rawFeedback?.weaknesses ?? [],
+        recommendations: rawFeedback?.recommendations ?? [],
+      };
+      setFeedback(normalizedFeedback);
+
+      console.log({ resumeUrl, imageUrl, feedback: normalizedFeedback });
+    };
     loadResume();
   }, [id]);
 
@@ -61,23 +73,26 @@ const Resume = () => {
         <section className="feedback-section bg-[url('/images/bg-small.svg') bg-cover h-100vh sticky top-0 items-center justify-center">
           {imageUrl && resumeUrl && (
             <div className="animate-in fade-in duration-1000 gradient-border max-sm:m-0 h-[90%] max-wxl:h-fit w-fit">
-                 <a href={resumeUrl} target="_blank" rel="noopener noreferrer">
-                   <img src={imageUrl} className="w-full h-full object-contain rounded-2xl" title="Resume"/>
-                 </a>
+              <a href={resumeUrl} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={imageUrl}
+                  className="w-full h-full object-contain rounded-2xl"
+                  title="Resume"
+                />
+              </a>
             </div>
           )}
         </section>
 
-        <section className="Feedback-Section">
+        <section className="feedback-Section">
           <h2 className="text-4xl text-black font-bold">Resume Review</h2>
-          { feedback ? (
-              <div className="flex flex-col gap-8 animate-in fade-in duration-1000">
-                <Summary feedback={feedback} />
-                <ATS score={feedback.ATS.score || 0} suggestions={feedback.ATS.tips || []} />
-                <Details feedback={feedback} />
-              </div>
+          {feedback ? (
+            <div className="flex flex-col gap-8 animate-in fade-in duration-1000">
+              <Summary feedback={feedback} />
+              
+            </div>
           ) : (
-              <img src="/images/resume-scan-2.gif" className="w-full"/>
+            <img src="/images/resume-scan-2.gif" className="w-full" />
           )}
         </section>
       </div>
